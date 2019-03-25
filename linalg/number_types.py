@@ -1,15 +1,15 @@
 from decimal import Decimal, getcontext
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from math import asin, cos, sin, sqrt
 
 # For type hints
-Numeric = Union[int, float, Decimal]
+RealNumeric = Union[int, float, Decimal]
 # For type checking (isinstance)
-Number = (int, float, Decimal)
+RealNumber: Tuple[RealNumeric] = (int, float, Decimal)
 
 class Complex:
-    def __init__(self, a: Optional[Numeric]=None, b: Optional[Numeric]=None, r: Optional[Numeric]=None,
-                 theta: Optional[Numeric]=None) -> None:
+    def __init__(self, a: Optional[RealNumeric]=None, b: Optional[RealNumeric]=None, r: Optional[RealNumeric]=None,
+                 theta: Optional[RealNumeric]=None) -> None:
         if a is not None and b is not None:
             self.a = a
             self.b = b
@@ -22,19 +22,19 @@ class Complex:
             raise ValueError('Must set a and b or r and theta.')
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         r = self.r.quantize(Decimal(10) ** -10).normalize()
         theta = self.theta.quantize(Decimal(10) ** -10).normalize()
         a = self.a.quantize(Decimal(10) ** -10).normalize()
         b = self.b.quantize(Decimal(10) ** -10).normalize()
         return f'{a} + i{b}, {r}e**(i{theta})'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def __setattr__(self, name, value) -> None:
-        if name in ['a', 'b', 'r', 'theta'] and isinstance(value, Number):
-            if isinstance(value, Number):
+        if name in ['a', 'b', 'r', 'theta'] and isinstance(value, RealNumber):
+            if isinstance(value, RealNumber):
                 self.__dict__[name] = Decimal(value)
             else:
                 AttributeError(f'Invalid value for attr {name}: {value}')
@@ -45,6 +45,9 @@ class Complex:
         Complex.__restrict_ops(other)
         return (self.a == other.a and
                 self.b == other.b)
+
+    def __ne__(self, other) -> bool:
+        return not (self == other)
 
     def __add__(self, other) -> 'Complex':
         Complex.__restrict_ops(other)
@@ -57,18 +60,12 @@ class Complex:
     def __mul__(self, other) -> 'Complex':
         Complex.__restrict_ops(other)
         return Complex(r=self.r * other.r, theta=self.theta + other.theta)
-        # TODO: can do this with only 3 multiplications http://mathworld.wolfram.com/ComplexMultiplication.html
-        # return Complex((self.a * other.a) - (self.b * other.b),
-        #               ((self.a * other.b) + (self.b * other.a)))
 
-    def __div__(self, other) -> 'Complex':
+    def __truediv__(self, other) -> 'Complex':
         Complex.__restrict_ops(other)
         if other.a == 0 and other.b == 0:
             raise ArithmeticError('Cannot by a zero Complex instance')
         return Complex(r=self.r / other.r, theta=self.theta - other.theta)
-        # return Complex(1/(other.a**2 + other.b**2), 0) *
-        #        Complex((self.a * other.a) + (self.b * other.b),
-        #                (self.b * other.a) - (self.a * other.b))
 
     @classmethod
     def __restrict_ops(cls, other) -> None:
@@ -76,11 +73,11 @@ class Complex:
             raise ValueError(f'Complex ops must be between Complex instances')
 
     @classmethod
-    def from_cart(cls, a: Numeric, b: Numeric)  -> 'Complex':
+    def from_cart(cls, a: RealNumeric, b: RealNumeric)  -> 'Complex':
         return cls(a=a, b=b)
 
     @classmethod
-    def from_polar(cls, r: Numeric, theta: Numeric) -> 'Complex':
+    def from_polar(cls, r: RealNumeric, theta: RealNumeric) -> 'Complex':
         return cls(r=r, theta=theta)
 
     def __calc_polar(self) -> None:
@@ -97,3 +94,8 @@ class Complex:
 
     def conjugate(self) -> 'Complex':
         return Complex(a=self.a, b=self.b * -1)
+
+# For type hints
+AbstractNumeric = Union[RealNumeric, Complex]
+# For type checking (isinstance)
+AbstractNumber: Tuple[AbstractNumeric] = RealNumber + (Complex,)
